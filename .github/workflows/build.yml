@@ -32,7 +32,7 @@ jobs:
           git clone --depth 1 --branch $BUILD_VERSION $APP_REPO skopeo-src
           cd skopeo-src
 
-          build_image="golang:1.23-alpine"
+          build_image="golang:1.12-alpine"
           docker pull "${build_image}"
 
           # Linux 构建
