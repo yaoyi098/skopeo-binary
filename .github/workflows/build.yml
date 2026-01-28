@@ -1,10 +1,7 @@
 name: Build
 
 on:
-  push:
-    tags:
-      - 'v*'   # 匹配所有以v开头的标签（如v1.2.3）
-  workflow_dispatch:  # 保留手动触发功能
+  workflow_dispatch:  # 仅保留手动触发功能
 
 jobs:
   build:
@@ -13,30 +10,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # 获取所有历史记录以便获取标签信息
+          fetch-depth: 0
 
-      - name: Setup Build Environment
-        id: setup
+      - name: Read Version
+        id: version
         run: |
-          # 直接使用推送的标签作为版本号
-          TAG_VERSION="${GITHUB_REF#refs/tags/}"
+          # 从version.txt读取版本号
+          TAG_VERSION=$(cat version.txt | tr -d '\n')
           echo "::group::[INFO] Building version $TAG_VERSION"
-          echo "build_version=${TAG_VERSION}" >> $GITHUB_OUTPUT
-          echo "APP_REPO=https://github.com/containers/skopeo.git" >> $GITHUB_ENV
+          echo "build_version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          echo "RELEASE_TAG=$TAG_VERSION" >> $GITHUB_ENV
 
       - name: Build Skopeo
         env:
-          BUILD_VERSION: ${{ steps.setup.outputs.build_version }}
+          BUILD_VERSION: ${{ steps.version.outputs.build_version }}
         run: |
           set -eux
-          # 使用预定义的环境变量
-          APP_REPO=${{ env.APP_REPO }}
+          APP_REPO=https://github.com/containers/skopeo.git
           
           # 克隆指定版本的代码
           git clone --depth 1 --branch $BUILD_VERSION $APP_REPO skopeo-src
           cd skopeo-src
 
-          # 使用容器构建
           build_image="golang:1.23-alpine"
           docker pull "${build_image}"
 
@@ -60,7 +55,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}  # 直接使用推送的标签
+          tag_name: ${{ env.RELEASE_TAG }}  # 使用从version.txt获取的版本
+          name: Skopeo ${{ env.RELEASE_TAGE }} Release
           files: |
             skopeo-src/bin/*
-          body: "Automated build for Skopeo ${{ github.ref_name }}"
+          body: "Automated build for Skopeo ${{ env.RELEASE_TAG }}"
