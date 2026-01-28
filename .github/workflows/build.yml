@@ -37,7 +37,7 @@ jobs:
           cd skopeo-src
 
           # 使用容器构建
-          build_image="golang:1.24-alpine"
+          build_image="golang:1.23-alpine"
           docker pull "${build_image}"
 
           # Linux 构建
